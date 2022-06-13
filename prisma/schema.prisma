@@ -1,0 +1,57 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Gender {
+  Male
+  Female
+}
+
+enum MaritalStatus {
+  SINGLE
+  MARRIED
+  DIVORCED
+  WIDOWED
+}
+
+enum DocumentType {
+  ID
+  PASSPORT
+}
+
+enum Status {
+  UN_VERIFIED
+  PENDING
+  VERIFICATION
+  VERIFIED
+}
+model User {
+    id Int @id @default(autoincrement())
+    profilePhoto String?
+    firstName String
+    lastName String
+    gender Gender
+    age Int?
+    dateOfBirth String
+    maritalStatus MaritalStatus
+    nationality String
+    email String @unique
+    password String
+    otpToken String?
+    isTwoFactorEnabled Boolean?
+    loginLinkToken String?
+    documentType DocumentType?
+    documentAttachment String?
+    status Status? @default(UN_VERIFIED)
+    idNumber String?
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+}
