@@ -1,3 +1,10 @@
+import {
+  DocumentType,
+  User,
+  Status,
+  MaritalStatus,
+  Gender,
+} from "@prisma/client";
 import bcrypt from "bcrypt";
 import { Request, Response } from "express";
 import { validationResult } from "express-validator";
@@ -16,6 +23,30 @@ import {
 } from "../services/accounts.service";
 import { signToken, verifyToken } from "../utils/jwtHelper";
 import sendMail from "../utils/mailer";
+
+interface ProfileResponse {
+  success: boolean;
+  message: string;
+  data?: {
+    user?: {
+      id?: number;
+      profilePhoto?: string;
+      firstName?: string;
+      lastName?: string;
+      gender?: Gender;
+      age?: number;
+      dateOfBirth?: string;
+      maritalStatus?: MaritalStatus;
+      nationality?: string;
+      email?: string;
+      status?: Status;
+      documentType?: DocumentType;
+      idNumber?: string;
+      documentAttachment?: string;
+      isVerification?: boolean;
+    };
+  };
+}
 
 const signUp = async (
   req: Request<Record<string, never>, Record<string, never>, UserProfileInput>,
@@ -176,14 +207,15 @@ const sendLoginLink = async (
 };
 
 const LoginWithLink = async (
-  req: Request<Record<string, never>, Record<string, never>, { token: string }>,
+  req: Request<{ token: string }, Record<string, never>, Record<string, never>>,
   res: Response
 ) => {
-  const input = req.body;
+  const input = req.params;
   const data = await verifyToken(input.token);
+
   if (data.error) {
     return res.status(401).json({
-      status: "unAuthorized",
+      success: false,
       message: "The link is either invalid or expired",
     });
   }
@@ -193,7 +225,7 @@ const LoginWithLink = async (
   const token = signToken(user, "24h");
 
   return res.status(201).json({
-    status: "success",
+    success: true,
     message: "Logged in successfully",
     data: {
       user: {
@@ -214,15 +246,45 @@ const ResetPassword = async (
   const data = await verifyToken(params.token);
   if (data.error) {
     return res.status(401).json({
-      status: "unAuthorized",
+      success: false,
       message: "The link is either invalid or expired",
     });
   }
 
   await setPassword(data.id || 0, input.password);
   return res.status(201).json({
-    status: "success",
+    success: true,
     message: "Password reset successfully",
+  });
+};
+
+const getUserProfile = (
+  req: Request<
+    Record<string, never>,
+    Record<string, never>,
+    Record<string, never>
+  >,
+  res: Response<ProfileResponse, { user: User }>
+) => {
+  const { user } = res.locals;
+
+  return res.status(201).json({
+    success: true,
+    message: "Profile retrieved successfully",
+    data: {
+      user: {
+        profilePhoto: user.profilePhoto || "",
+        firstName: user.firstName,
+        lastName: user.firstName,
+        gender: user.gender,
+        dateOfBirth: user.dateOfBirth,
+        maritalStatus: user.maritalStatus,
+        nationality: user.nationality,
+        email: user.email,
+        status: user.status || null || undefined,
+        documentAttachment: user.documentAttachment || "",
+      },
+    },
   });
 };
 
@@ -235,4 +297,5 @@ export {
   sendLoginLink,
   LoginWithLink,
   ResetPassword,
+  getUserProfile,
 };

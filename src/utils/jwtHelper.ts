@@ -8,7 +8,7 @@ interface TokenPayload {
   error?: string;
 }
 
-const signToken = (user: User | null, expiresIn: string | null) =>
+const signToken = (user: User | null, expiresIn: string | number | null) =>
   JWT.sign(
     {
       id: user?.id,

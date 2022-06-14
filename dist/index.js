@@ -18,3 +18,4 @@ app.use(index_1.default);
 app.listen(port, () => {
     console.log(`⚡️[server]: Server is running at https://localhost:${port}`);
 });
+exports.default = app;

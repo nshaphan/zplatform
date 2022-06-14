@@ -102,7 +102,7 @@ const changeStatus = (id, status) => {
 exports.changeStatus = changeStatus;
 const generateLoginLink = (email) => __awaiter(void 0, void 0, void 0, function* () {
     let user = yield findUserByEmail(email);
-    const token = (0, jwtHelper_1.signToken)(user, "15m");
+    const token = (0, jwtHelper_1.signToken)(user, 60 * 15);
     user = yield prisma.user.update({
         where: {
             email,

@@ -3,7 +3,9 @@ import multer from "multer";
 import path from "path";
 import {
   forgotPassword,
+  getUserProfile,
   login,
+  LoginWithLink,
   ResetPassword,
   sendLoginLink,
   signUp,
@@ -16,6 +18,7 @@ import loginSchema from "../validations/login.schema";
 import updateProfileSchema from "../validations/updateProfile.schema";
 import verifyProfileSchema from "../validations/verifyProfile.schema";
 import setPasswordSchema from "../validations/setPassword.schema";
+import authenticate from "../utils/authenticate";
 
 const storage = multer.diskStorage({
   destination(req, file, cb) {
@@ -46,6 +49,8 @@ authRouter
   )
   .post("/verify-profile", verifyProfileSchema, verifyProfile)
   .post("/send-login-link", forgotPasswordSchema, sendLoginLink)
-  .post("/set-password", setPasswordSchema, ResetPassword);
+  .post("/set-password", setPasswordSchema, ResetPassword)
+  .post("/login-with-link/:token", LoginWithLink)
+  .get("/profile", authenticate, getUserProfile);
 
 export default authRouter;

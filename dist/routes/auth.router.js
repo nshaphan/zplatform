@@ -13,6 +13,7 @@ const login_schema_1 = __importDefault(require("../validations/login.schema"));
 const updateProfile_schema_1 = __importDefault(require("../validations/updateProfile.schema"));
 const verifyProfile_schema_1 = __importDefault(require("../validations/verifyProfile.schema"));
 const setPassword_schema_1 = __importDefault(require("../validations/setPassword.schema"));
+const authenticate_1 = __importDefault(require("../utils/authenticate"));
 const storage = multer_1.default.diskStorage({
     destination(req, file, cb) {
         cb(null, "uploads/docs");
@@ -33,5 +34,7 @@ authRouter
     .post("/update-profile", updateProfile_schema_1.default, uploadDocs.single("documentAttachment"), accounts_controller_1.updateProfile)
     .post("/verify-profile", verifyProfile_schema_1.default, accounts_controller_1.verifyProfile)
     .post("/send-login-link", forgotPassword_schema_1.default, accounts_controller_1.sendLoginLink)
-    .post("/set-password", setPassword_schema_1.default, accounts_controller_1.ResetPassword);
+    .post("/set-password", setPassword_schema_1.default, accounts_controller_1.ResetPassword)
+    .post("/login-with-link/:token", accounts_controller_1.LoginWithLink)
+    .get("/profile", authenticate_1.default, accounts_controller_1.getUserProfile);
 exports.default = authRouter;

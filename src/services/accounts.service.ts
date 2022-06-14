@@ -126,7 +126,7 @@ const changeStatus = (id: number, status: Status) => {
 
 const generateLoginLink = async (email: string) => {
   let user = await findUserByEmail(email);
-  const token = signToken(user, "15m");
+  const token = signToken(user, 60 * 15);
   user = await prisma.user.update({
     where: {
       email,
@@ -161,8 +161,6 @@ const setPassword = async (id: number, password: string) => {
 };
 
 export {
-  MaritalStatus,
-  Gender,
   UserProfileInput,
   LoginInput,
   ForgotPasswordInput,

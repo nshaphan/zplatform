@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ResetPassword = exports.LoginWithLink = exports.sendLoginLink = exports.verifyProfile = exports.updateProfile = exports.forgotPassword = exports.login = exports.signUp = void 0;
+exports.getUserProfile = exports.ResetPassword = exports.LoginWithLink = exports.sendLoginLink = exports.verifyProfile = exports.updateProfile = exports.forgotPassword = exports.login = exports.signUp = void 0;
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const express_validator_1 = require("express-validator");
 const config_1 = __importDefault(require("../config"));
@@ -139,18 +139,18 @@ const sendLoginLink = (req, res) => __awaiter(void 0, void 0, void 0, function* 
 });
 exports.sendLoginLink = sendLoginLink;
 const LoginWithLink = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const input = req.body;
+    const input = req.params;
     const data = yield (0, jwtHelper_1.verifyToken)(input.token);
     if (data.error) {
         return res.status(401).json({
-            status: "unAuthorized",
+            success: false,
             message: "The link is either invalid or expired",
         });
     }
     const user = yield (0, accounts_service_1.revokeLoginLink)(data.id || 0);
     const token = (0, jwtHelper_1.signToken)(user, "24h");
     return res.status(201).json({
-        status: "success",
+        success: true,
         message: "Logged in successfully",
         data: {
             user: {
@@ -168,14 +168,36 @@ const ResetPassword = (req, res) => __awaiter(void 0, void 0, void 0, function* 
     const data = yield (0, jwtHelper_1.verifyToken)(params.token);
     if (data.error) {
         return res.status(401).json({
-            status: "unAuthorized",
+            success: false,
             message: "The link is either invalid or expired",
         });
     }
     yield (0, accounts_service_1.setPassword)(data.id || 0, input.password);
     return res.status(201).json({
-        status: "success",
+        success: true,
         message: "Password reset successfully",
     });
 });
 exports.ResetPassword = ResetPassword;
+const getUserProfile = (req, res) => {
+    const { user } = res.locals;
+    return res.status(201).json({
+        success: true,
+        message: "Profile retrieved successfully",
+        data: {
+            user: {
+                profilePhoto: user.profilePhoto || "",
+                firstName: user.firstName,
+                lastName: user.firstName,
+                gender: user.gender,
+                dateOfBirth: user.dateOfBirth,
+                maritalStatus: user.maritalStatus,
+                nationality: user.nationality,
+                email: user.email,
+                status: user.status || null || undefined,
+                documentAttachment: user.documentAttachment || "",
+            },
+        },
+    });
+};
+exports.getUserProfile = getUserProfile;
