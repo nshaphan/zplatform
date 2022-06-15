@@ -12,8 +12,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getUserProfile = exports.ResetPassword = exports.LoginWithLink = exports.sendLoginLink = exports.verifyProfile = exports.updateProfile = exports.forgotPassword = exports.login = exports.signUp = void 0;
+exports.verifyOtp = exports.getUserProfile = exports.ResetPassword = exports.LoginWithLink = exports.sendLoginLink = exports.verifyProfile = exports.updateProfile = exports.forgotPassword = exports.login = exports.signUp = void 0;
 const bcrypt_1 = __importDefault(require("bcrypt"));
+const crypto_1 = require("crypto");
 const express_validator_1 = require("express-validator");
 const config_1 = __importDefault(require("../config"));
 const accounts_service_1 = require("../services/accounts.service");
@@ -36,7 +37,7 @@ const signUp = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
 exports.signUp = signUp;
 const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const input = req.body;
-    const user = yield (0, accounts_service_1.findUserByEmail)(input.email);
+    let user = yield (0, accounts_service_1.findUserByEmail)(input.email);
     if (!user) {
         return res.status(401).json({
             success: false,
@@ -49,17 +50,24 @@ const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             message: "Incorrect credentials",
         });
     }
-    const token = (0, jwtHelper_1.signToken)(user, "24h");
-    return res.status(201).json({
+    let token = "";
+    let otpCode = "";
+    if (!user.isTwoFactorEnabled) {
+        token = (0, jwtHelper_1.signToken)(user, "24h");
+    }
+    else {
+        otpCode = (0, crypto_1.randomInt)(10000, 99999).toString();
+        const otpCodeHash = bcrypt_1.default.hashSync(otpCode, 10);
+        user = yield (0, accounts_service_1.setOtp)(user.id, otpCodeHash);
+    }
+    return res.status(200).json({
         success: true,
         message: "Logged in successfully",
-        data: {
-            user: {
+        data: Object.assign({ user: {
+                id: user.id,
                 firstName: user.firstName,
                 lastName: user.lastName,
-            },
-            token,
-        },
+            } }, (user.isTwoFactorEnabled ? { otpCode } : { token })),
     });
 });
 exports.login = login;
@@ -94,9 +102,9 @@ const updateProfile = (req, res) => __awaiter(void 0, void 0, void 0, function* 
     if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
     }
-    return res.status(201).json({
+    return res.status(200).json({
         status: "success",
-        message: "Profile created successfully",
+        message: "Profile updated successfully",
         data: {
             id: Number(user.id),
         },
@@ -181,11 +189,12 @@ const ResetPassword = (req, res) => __awaiter(void 0, void 0, void 0, function* 
 exports.ResetPassword = ResetPassword;
 const getUserProfile = (req, res) => {
     const { user } = res.locals;
-    return res.status(201).json({
+    return res.status(200).json({
         success: true,
         message: "Profile retrieved successfully",
         data: {
             user: {
+                id: user.id,
                 profilePhoto: user.profilePhoto || "",
                 firstName: user.firstName,
                 lastName: user.firstName,
@@ -196,8 +205,39 @@ const getUserProfile = (req, res) => {
                 email: user.email,
                 status: user.status || null || undefined,
                 documentAttachment: user.documentAttachment || "",
+                idNumber: user.idNumber || "",
             },
         },
     });
 };
 exports.getUserProfile = getUserProfile;
+const verifyOtp = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const input = req.body;
+    const user = yield (0, accounts_service_1.findUserById)(input.id);
+    if (!user) {
+        return res.status(401).json({
+            success: false,
+            message: "Invalid Code",
+        });
+    }
+    if (!bcrypt_1.default.compareSync(input.otp, user.otpToken || "")) {
+        return res.status(401).json({
+            success: false,
+            message: "Invalid Code",
+        });
+    }
+    const token = (0, jwtHelper_1.signToken)(user, "24h");
+    yield (0, accounts_service_1.revokeOtpCode)(user.id);
+    return res.status(200).json({
+        success: true,
+        message: "Logged in successfully",
+        data: {
+            user: {
+                firstName: user.firstName,
+                lastName: user.lastName,
+            },
+            token,
+        },
+    });
+});
+exports.verifyOtp = verifyOtp;

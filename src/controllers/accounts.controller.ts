@@ -6,6 +6,7 @@ import {
   Gender,
 } from "@prisma/client";
 import bcrypt from "bcrypt";
+import { randomInt } from "crypto";
 import { Request, Response } from "express";
 import { validationResult } from "express-validator";
 import config from "../config";
@@ -13,10 +14,13 @@ import {
   changeStatus,
   createUserProfile,
   findUserByEmail,
+  findUserById,
   ForgotPasswordInput,
   generateLoginLink,
   LoginInput,
   revokeLoginLink,
+  revokeOtpCode as revokeOtp,
+  setOtp,
   setPassword,
   updateUserProfile,
   UserProfileInput,
@@ -73,7 +77,7 @@ const login = async (
   res: Response
 ): Promise<Response> => {
   const input = req.body;
-  const user = await findUserByEmail(input.email);
+  let user = await findUserByEmail(input.email);
   if (!user) {
     return res.status(401).json({
       success: false,
@@ -88,17 +92,26 @@ const login = async (
     });
   }
 
-  const token = signToken(user, "24h");
+  let token = "";
+  let otpCode = "";
+  if (!user.isTwoFactorEnabled) {
+    token = signToken(user, "24h");
+  } else {
+    otpCode = randomInt(10000, 99999).toString();
+    const otpCodeHash = bcrypt.hashSync(otpCode, 10);
+    user = await setOtp(user.id, otpCodeHash);
+  }
 
-  return res.status(201).json({
+  return res.status(200).json({
     success: true,
     message: "Logged in successfully",
     data: {
       user: {
+        id: user.id,
         firstName: user.firstName,
         lastName: user.lastName,
       },
-      token,
+      ...(user.isTwoFactorEnabled ? { otpCode } : { token }),
     },
   });
 };
@@ -150,9 +163,9 @@ const updateProfile = async (
     return res.status(400).json({ errors: errors.array() });
   }
 
-  return res.status(201).json({
+  return res.status(200).json({
     status: "success",
-    message: "Profile created successfully",
+    message: "Profile updated successfully",
     data: {
       id: Number(user.id),
     },
@@ -268,11 +281,12 @@ const getUserProfile = (
 ) => {
   const { user } = res.locals;
 
-  return res.status(201).json({
+  return res.status(200).json({
     success: true,
     message: "Profile retrieved successfully",
     data: {
       user: {
+        id: user.id,
         profilePhoto: user.profilePhoto || "",
         firstName: user.firstName,
         lastName: user.firstName,
@@ -283,7 +297,48 @@ const getUserProfile = (
         email: user.email,
         status: user.status || null || undefined,
         documentAttachment: user.documentAttachment || "",
+        idNumber: user.idNumber || "",
       },
+    },
+  });
+};
+
+const verifyOtp = async (
+  req: Request<
+    Record<string, never>,
+    Record<string, never>,
+    { id: number; otp: string }
+  >,
+  res: Response
+) => {
+  const input = req.body;
+  const user = await findUserById(input.id);
+  if (!user) {
+    return res.status(401).json({
+      success: false,
+      message: "Invalid Code",
+    });
+  }
+
+  if (!bcrypt.compareSync(input.otp, user.otpToken || "")) {
+    return res.status(401).json({
+      success: false,
+      message: "Invalid Code",
+    });
+  }
+
+  const token = signToken(user, "24h");
+  await revokeOtp(user.id);
+
+  return res.status(200).json({
+    success: true,
+    message: "Logged in successfully",
+    data: {
+      user: {
+        firstName: user.firstName,
+        lastName: user.lastName,
+      },
+      token,
     },
   });
 };
@@ -298,4 +353,5 @@ export {
   LoginWithLink,
   ResetPassword,
   getUserProfile,
+  verifyOtp,
 };

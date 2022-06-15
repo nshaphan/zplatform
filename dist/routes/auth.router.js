@@ -37,4 +37,8 @@ authRouter
     .post("/set-password", setPassword_schema_1.default, accounts_controller_1.ResetPassword)
     .post("/login-with-link/:token", accounts_controller_1.LoginWithLink)
     .get("/profile", authenticate_1.default, accounts_controller_1.getUserProfile);
+authRouter.get("/media/:file(*)", (req, res) => {
+    const { file } = req.params;
+    res.sendFile(path_1.default.join(path_1.default.dirname(path_1.default.dirname(__dirname)), `${file}`));
+});
 exports.default = authRouter;

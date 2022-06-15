@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.setPassword = exports.revokeLoginLink = exports.generateLoginLink = exports.changeStatus = exports.updateUserProfile = exports.findUserById = exports.findUserByEmail = exports.checkEmailExists = exports.createUserProfile = void 0;
+exports.setOtp = exports.revokeOtpCode = exports.setPassword = exports.revokeLoginLink = exports.generateLoginLink = exports.changeStatus = exports.updateUserProfile = exports.findUserById = exports.findUserByEmail = exports.checkEmailExists = exports.createUserProfile = void 0;
 const client_1 = require("@prisma/client");
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const jwtHelper_1 = require("../utils/jwtHelper");
@@ -31,6 +31,7 @@ const createUserProfile = (input) => __awaiter(void 0, void 0, void 0, function*
             nationality: input.nationality,
             email: input.email,
             password: passwordHash,
+            isTwoFactorEnabled: input.isTwoFactorEnabled,
         },
     });
     return user;
@@ -84,7 +85,7 @@ const updateUserProfile = (input) => __awaiter(void 0, void 0, void 0, function*
             documentType: input.documentType || undefined,
             idNumber: input.idNumber || undefined,
             documentAttachment: input.documentAttachment || undefined,
-            status: input.isVerification ? "PENDING" : undefined,
+            status: input.idNumber ? "PENDING" : undefined,
         },
     });
     return user;
@@ -136,3 +137,29 @@ const setPassword = (id, password) => __awaiter(void 0, void 0, void 0, function
     });
 });
 exports.setPassword = setPassword;
+const revokeOtpCode = (id) => __awaiter(void 0, void 0, void 0, function* () {
+    const user = yield prisma.user.update({
+        where: {
+            id,
+        },
+        data: {
+            otpToken: null,
+            otpExpiresAt: null,
+        },
+    });
+    return user;
+});
+exports.revokeOtpCode = revokeOtpCode;
+const setOtp = (id, otp) => __awaiter(void 0, void 0, void 0, function* () {
+    const user = yield prisma.user.update({
+        where: {
+            id,
+        },
+        data: {
+            otpToken: otp,
+            otpExpiresAt: new Date(),
+        },
+    });
+    return user;
+});
+exports.setOtp = setOtp;

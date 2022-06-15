@@ -27,6 +27,7 @@ interface UserProfileInput {
   idNumber: string;
   documentAttachment: string;
   isVerification: boolean;
+  isTwoFactorEnabled?: boolean;
 }
 
 interface LoginInput {
@@ -54,6 +55,7 @@ const createUserProfile = async (input: UserProfileInput) => {
       nationality: input.nationality,
       email: input.email,
       password: passwordHash,
+      isTwoFactorEnabled: input.isTwoFactorEnabled,
     },
   });
 
@@ -108,7 +110,7 @@ const updateUserProfile = async (input: UserProfileInput) => {
       documentType: input.documentType || undefined,
       idNumber: input.idNumber || undefined,
       documentAttachment: input.documentAttachment || undefined,
-      status: input.isVerification ? "PENDING" : undefined,
+      status: input.idNumber ? "PENDING" : undefined,
     },
   });
   return user;
@@ -160,6 +162,32 @@ const setPassword = async (id: number, password: string) => {
   });
 };
 
+const revokeOtpCode = async (id: number) => {
+  const user = await prisma.user.update({
+    where: {
+      id,
+    },
+    data: {
+      otpToken: null,
+      otpExpiresAt: null,
+    },
+  });
+  return user;
+};
+
+const setOtp = async (id: number, otp: string) => {
+  const user = await prisma.user.update({
+    where: {
+      id,
+    },
+    data: {
+      otpToken: otp,
+      otpExpiresAt: new Date(),
+    },
+  });
+  return user;
+};
+
 export {
   UserProfileInput,
   LoginInput,
@@ -173,4 +201,6 @@ export {
   generateLoginLink,
   revokeLoginLink,
   setPassword,
+  revokeOtpCode,
+  setOtp,
 };
