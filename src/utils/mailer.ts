@@ -5,8 +5,9 @@ interface EmailOptions {
   to: string;
   subject: string;
   message: string;
+  title: string;
 }
-const sendMail = ({ to, subject, message }: EmailOptions) => {
+const sendMail = ({ title, to, subject, message }: EmailOptions) => {
   const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
@@ -19,7 +20,7 @@ const sendMail = ({ to, subject, message }: EmailOptions) => {
     to,
     subject,
     from: "noreply@zplatform.com",
-    html: `<h1>Reset Password</h1><p>${message}</p>`,
+    html: `<h1>${title}</h1><p>${message}</p>`,
   };
 
   transporter.sendMail(mailOptions, (error, info) => {

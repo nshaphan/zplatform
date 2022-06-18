@@ -10,6 +10,7 @@ import {
   sendLoginLink,
   signUp,
   updateProfile,
+  verifyOtp,
   verifyProfile,
 } from "../controllers/accounts.controller";
 import forgotPasswordSchema from "../validations/forgotPassword.schema";
@@ -51,6 +52,12 @@ authRouter
   .post("/send-login-link", forgotPasswordSchema, sendLoginLink)
   .post("/set-password", setPasswordSchema, ResetPassword)
   .post("/login-with-link/:token", LoginWithLink)
-  .get("/profile", authenticate, getUserProfile);
+  .get("/profile", authenticate, getUserProfile)
+  .post("/verify-otp", verifyOtp);
+
+authRouter.get("/media/:file(*)", (req, res) => {
+  const { file } = req.params;
+  res.sendFile(path.join(path.dirname(path.dirname(__dirname)), `${file}`));
+});
 
 export default authRouter;
