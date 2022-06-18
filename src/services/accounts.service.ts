@@ -182,7 +182,7 @@ const setOtp = async (id: number, otp: string) => {
     },
     data: {
       otpToken: otp,
-      otpExpiresAt: new Date(),
+      otpExpiresAt: new Date(Date.now() + 5 * 60 * 1000),
     },
   });
   return user;

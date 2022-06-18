@@ -157,7 +157,7 @@ const setOtp = (id, otp) => __awaiter(void 0, void 0, void 0, function* () {
         },
         data: {
             otpToken: otp,
-            otpExpiresAt: new Date(),
+            otpExpiresAt: new Date(Date.now() + 5 * 60 * 1000),
         },
     });
     return user;

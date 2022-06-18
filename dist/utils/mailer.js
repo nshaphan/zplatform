@@ -5,7 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const nodemailer_1 = __importDefault(require("nodemailer"));
 const config_1 = __importDefault(require("../config"));
-const sendMail = ({ to, subject, message }) => {
+const sendMail = ({ title, to, subject, message }) => {
     const transporter = nodemailer_1.default.createTransport({
         service: "gmail",
         auth: {
@@ -17,7 +17,7 @@ const sendMail = ({ to, subject, message }) => {
         to,
         subject,
         from: "noreply@zplatform.com",
-        html: `<h1>Reset Password</h1><p>${message}</p>`,
+        html: `<h1>${title}</h1><p>${message}</p>`,
     };
     transporter.sendMail(mailOptions, (error, info) => {
         if (error) {

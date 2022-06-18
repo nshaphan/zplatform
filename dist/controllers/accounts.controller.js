@@ -27,7 +27,7 @@ const signUp = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     }
     const user = yield (0, accounts_service_1.createUserProfile)(req.body);
     return res.status(201).json({
-        status: true,
+        success: true,
         message: "Profile created successfully",
         data: {
             id: user.id,
@@ -59,6 +59,12 @@ const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         otpCode = (0, crypto_1.randomInt)(10000, 99999).toString();
         const otpCodeHash = bcrypt_1.default.hashSync(otpCode, 10);
         user = yield (0, accounts_service_1.setOtp)(user.id, otpCodeHash);
+        (0, mailer_1.default)({
+            title: "Two Factor Authentication",
+            to: input.email,
+            subject: "ZPlatform - OTP Code",
+            message: `Your OTP Code is: ${otpCode}, will expire in 5 minutes`,
+        });
     }
     return res.status(200).json({
         success: true,
@@ -67,7 +73,8 @@ const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                 id: user.id,
                 firstName: user.firstName,
                 lastName: user.lastName,
-            } }, (user.isTwoFactorEnabled ? { otpCode } : { token })),
+                isTwoFactorEnabled: user.isTwoFactorEnabled,
+            } }, (!user.isTwoFactorEnabled && { token })),
     });
 });
 exports.login = login;
@@ -80,13 +87,14 @@ const forgotPassword = (req, res) => __awaiter(void 0, void 0, void 0, function*
     const user = yield (0, accounts_service_1.findUserByEmail)(input.email);
     const token = (0, jwtHelper_1.signToken)(user, "15m");
     (0, mailer_1.default)({
+        title: "Reset Password",
         to: input.email,
         subject: "ZPlatform - Reset Password",
         message: `Click here to reset password: ${config_1.default.FRONTEND_HOST}/reset-password/${token}`,
     });
     // send email
     return res.status(201).json({
-        status: "success",
+        success: true,
         message: "Password email sent successfully, check your email.",
     });
 });
@@ -103,7 +111,7 @@ const updateProfile = (req, res) => __awaiter(void 0, void 0, void 0, function* 
         return res.status(400).json({ errors: errors.array() });
     }
     return res.status(200).json({
-        status: "success",
+        success: true,
         message: "Profile updated successfully",
         data: {
             id: Number(user.id),
@@ -119,7 +127,7 @@ const verifyProfile = (req, res) => __awaiter(void 0, void 0, void 0, function* 
     }
     const user = yield (0, accounts_service_1.changeStatus)(input.id, input.status);
     return res.status(201).json({
-        status: "success",
+        success: true,
         message: "Profile created successfully",
         data: {
             id: Number(user.id),
@@ -135,13 +143,14 @@ const sendLoginLink = (req, res) => __awaiter(void 0, void 0, void 0, function* 
     }
     const user = yield (0, accounts_service_1.generateLoginLink)(input.email);
     (0, mailer_1.default)({
+        title: "Login Link",
         to: input.email,
         subject: "ZPlatform - Login Link",
         message: `Click here to Login: ${config_1.default.FRONTEND_HOST}/login-link/${user.loginLinkToken}`,
     });
     // send email
     return res.status(201).json({
-        status: "success",
+        success: true,
         message: "Login link email sent successfully, check your email.",
     });
 });
@@ -172,8 +181,12 @@ const LoginWithLink = (req, res) => __awaiter(void 0, void 0, void 0, function* 
 exports.LoginWithLink = LoginWithLink;
 const ResetPassword = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const input = req.body;
-    const { params } = req;
-    const data = yield (0, jwtHelper_1.verifyToken)(params.token);
+    const errors = (0, express_validator_1.validationResult)(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
+    const data = yield (0, jwtHelper_1.verifyToken)(input.token);
+    console.log(input.token);
     if (data.error) {
         return res.status(401).json({
             success: false,
@@ -220,7 +233,13 @@ const verifyOtp = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             message: "Invalid Code",
         });
     }
-    if (!bcrypt_1.default.compareSync(input.otp, user.otpToken || "")) {
+    if ((user === null || user === void 0 ? void 0 : user.otpExpiresAt) && (user === null || user === void 0 ? void 0 : user.otpExpiresAt) < new Date()) {
+        return res.status(401).json({
+            success: false,
+            message: "Invalid Code",
+        });
+    }
+    if (!bcrypt_1.default.compareSync(input.otpCode, user.otpToken || "")) {
         return res.status(401).json({
             success: false,
             message: "Invalid Code",
