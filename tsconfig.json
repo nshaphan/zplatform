@@ -98,12 +98,13 @@
 
     /* Completeness */
     "skipDefaultLibCheck": true,                      /* Skip type checking .d.ts files that are included with TypeScript. */
-    "skipLibCheck": true                                 /* Skip type checking all .d.ts files. */
+    "skipLibCheck": true,
+    "typeRoots": ["./node_modules/@types", "./src/types"]                               /* Skip type checking all .d.ts files. */
   },
   "exclude": [
     "node_modules", "**/*.test.*", "**/__mocks__/*", "**/__tests__/*"
   ],
   "include": [
     "./src/**/*.ts"
-, "index.d.ts"  ]
+, "src/types/index.d.ts"  ]
 }
